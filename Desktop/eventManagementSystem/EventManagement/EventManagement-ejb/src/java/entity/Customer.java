@@ -55,7 +55,7 @@ public class Customer implements Serializable {
     }
     
     public Long getId() {
-        System.out.println("testing");
+        System.out.println("testing why is this so hard");
         return id;
     }
 
