@@ -15,6 +15,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -52,6 +53,9 @@ public class Event implements Serializable {
     
     @ManyToMany(mappedBy = "eventsRegistered",cascade={CascadeType.ALL},fetch = FetchType.EAGER)
     private List<Customer> attendees;
+    
+    @ManyToOne(cascade={CascadeType.ALL},fetch = FetchType.EAGER)
+    private Customer organiser;
     
     public Long getId() {
         return id;
@@ -116,7 +120,15 @@ public class Event implements Serializable {
     public void setAttendees(List<Customer> attendees) {
         this.attendees = attendees;
     }
-    
+
+    public Customer getOrganiser() {
+        return organiser;
+    }
+
+    public void setOrganiser(Customer organiser) {
+        this.organiser = organiser;
+    }
+   
     @Override
     public int hashCode() {
         int hash = 0;
