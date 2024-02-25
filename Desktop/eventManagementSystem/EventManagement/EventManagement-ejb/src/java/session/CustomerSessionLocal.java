@@ -19,6 +19,8 @@ public interface CustomerSessionLocal {
     
     public List<Customer> searchCustomers(String name);
     
+    public Customer validateLogin(String username, String password) throws NoResultException;
+    
     public Customer getCustomer(Long cId) throws NoResultException;
     
     public void createCustomer(Customer c);

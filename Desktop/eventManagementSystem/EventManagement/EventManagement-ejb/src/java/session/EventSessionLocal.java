@@ -4,7 +4,12 @@
  */
 package session;
 
+
+import entity.Event;
+import error.NoResultException;
+import java.util.List;
 import javax.ejb.Local;
+
 
 /**
  *
@@ -12,5 +17,13 @@ import javax.ejb.Local;
  */
 @Local
 public interface EventSessionLocal {
+    
+    public List<Event> searchEvents(String eventTitle);
+    
+    public Event getEvent(Long eId) throws NoResultException;
+    
+    public void createEvent(Event e);
+    
+    public void updateEvent(Event e) throws NoResultException;
     
 }

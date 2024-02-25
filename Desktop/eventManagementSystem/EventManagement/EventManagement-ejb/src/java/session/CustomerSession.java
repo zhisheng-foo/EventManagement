@@ -44,6 +44,15 @@ public class CustomerSession implements CustomerSessionLocal {
     } //end searchCustomers
     
     @Override
+    public Customer validateLogin(String username, String password) throws NoResultException {
+        
+        Query query = em.createQuery("SELECT c FROM Customer c WHERE c.name = :username AND c.password = :password");
+        query.setParameter("username", username);
+        query.setParameter("password", password); 
+        return (Customer) query.getSingleResult();
+    }
+
+    @Override
     public Customer getCustomer(Long cId) throws NoResultException {
         Customer cust = em.find(Customer.class, cId);
 
