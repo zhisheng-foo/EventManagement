@@ -26,4 +26,6 @@ public interface EventSessionLocal {
     
     public void updateEvent(Event e) throws NoResultException;
     
+    List<Event> getEventsByCustomerId(Long cId);
+    
 }

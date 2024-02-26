@@ -70,6 +70,14 @@ public class EventSession implements EventSessionLocal {
         oldE.setAttendees(e.getAttendees());    
     }
     
+    @Override
+    public List<Event> getEventsByCustomerId(Long cId) {
+        // Create a JPQL query to get all events organized by the user with the given ID
+        Query query = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id = :cId");
+        query.setParameter("cId", cId);
+        return query.getResultList();
+    }
+    
     
     
 

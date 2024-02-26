@@ -45,6 +45,7 @@ public class AuthenticationManagedBean implements Serializable {
         this.userId = userId;
     }
     
+    //login use case
     public String login() {
         try {
             // Use the customerSessionLocal bean to check the credentials
@@ -73,7 +74,8 @@ public class AuthenticationManagedBean implements Serializable {
             return "login.xhtml";
         }
     } // end login
-
+    
+    //logout use case
     public String logout() {
         username = null;
         password = null;
