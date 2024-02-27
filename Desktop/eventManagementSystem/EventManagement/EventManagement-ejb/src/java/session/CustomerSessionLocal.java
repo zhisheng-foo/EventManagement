@@ -36,4 +36,6 @@ public interface CustomerSessionLocal {
     public void removeEventFromEventOrganised(Long cId, Event e) throws NoResultException;
    
     public void deleteCustomer(Long cId) throws NoResultException;
+    
+    public List<Event> getEventsRegisteredByCustomerId(Long customerId);
 }

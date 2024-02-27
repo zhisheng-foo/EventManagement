@@ -13,6 +13,7 @@ import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 
 /**
  *
@@ -93,7 +94,7 @@ public class CustomerSession implements CustomerSessionLocal {
         em.persist(e);
         
         attendee.getEventsRegistered().add(e);
-        e.getAttendees().add(attendee);
+        e.getCustomerRegistered().add(attendee);
         
         em.merge(attendee);
         em.merge(e);
@@ -133,7 +134,7 @@ public class CustomerSession implements CustomerSessionLocal {
 
         attendee.getEventsRegistered().remove(e);
 
-        e.getAttendees().remove(attendee);
+        e.getCustomerRegistered().remove(attendee);
 
         em.merge(attendee);
         em.merge(e);
@@ -154,7 +155,7 @@ public class CustomerSession implements CustomerSessionLocal {
         
         organiser.getEventsOrganised().remove(e);
 
-        e.getAttendees().clear(); 
+        e.getCustomerRegistered().clear(); 
 
         em.remove(em.contains(e) ? e : em.merge(e));
         
@@ -174,7 +175,7 @@ public class CustomerSession implements CustomerSessionLocal {
         });
 
         new ArrayList<>(customer.getEventsRegistered()).stream().map(e -> {
-            e.getAttendees().remove(customer);
+            e.getCustomerRegistered().remove(customer);
             return e;
         }).forEachOrdered(e -> {
             em.merge(e);
@@ -183,7 +184,15 @@ public class CustomerSession implements CustomerSessionLocal {
         em.remove(customer);
     } // end deleteCustomer
 
-
+    
+    @Override
+    public List<Event> getEventsRegisteredByCustomerId(Long cId){
+        TypedQuery<Event> query = em.createQuery(
+            "SELECT e FROM Event e JOIN e.customerRegistered c WHERE c.id = :cId", Event.class);
+        query.setParameter("cId", cId);
+        return query.getResultList();
+    
+    }
     
     
 

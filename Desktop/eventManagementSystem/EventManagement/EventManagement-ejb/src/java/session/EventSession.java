@@ -4,13 +4,16 @@
  */
 package session;
 
+import entity.Customer;
 import entity.Event;
 import error.NoResultException;
+import java.util.ArrayList;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 
 /**
  *
@@ -26,8 +29,9 @@ public class EventSession implements EventSessionLocal {
         em.persist(object);
     }
     
+    
     @Override
-    public List<Event> searchEvents(String eventTitle) {
+    public List<Event> searchEventsByTitle(String eventTitle) {
         Query q;
         if (eventTitle != null) {
             q = em.createQuery("SELECT e FROM Event e WHERE "
@@ -38,7 +42,22 @@ public class EventSession implements EventSessionLocal {
         }
 
         return q.getResultList();
-    } //end searchEvents
+    } //end searchEventsByTitle
+    
+    @Override
+    public List<Event> searchEventsByOrganiserName(String name) {
+        
+        TypedQuery<Event> query = em.createQuery(
+                "SELECT e FROM Event e WHERE LOWER(e.organiser.name) LIKE LOWER(:name)", Event.class);
+        query.setParameter("name", "%" + name + "%");
+        return query.getResultList();
+    } //end searchEventsByOrganiserName
+    
+    @Override
+    public List<Event> getAllEvents() {
+        TypedQuery<Event> query = em.createQuery("SELECT e FROM Event e", Event.class);
+        return query.getResultList();
+    } //end getAllEvents
     
     @Override
     public Event getEvent(Long eId) throws NoResultException {
@@ -67,8 +86,8 @@ public class EventSession implements EventSessionLocal {
         oldE.setEventDate(e.getEventDate());
         oldE.setDeadline(e.getDeadline());
         oldE.setMaxCapacity(e.getMaxCapacity());
-        oldE.setAttendees(e.getAttendees());    
-    }
+        oldE.setCustomerRegistered(e.getCustomerRegistered());    
+    } // end updateEvent
     
     @Override
     public List<Event> getEventsByCustomerId(Long cId) {
@@ -76,7 +95,28 @@ public class EventSession implements EventSessionLocal {
         Query query = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id = :cId");
         query.setParameter("cId", cId);
         return query.getResultList();
-    }
+    } // end getEventsByCustomerId
+        
+    @Override
+    public List<Customer> updateMissingCustomers(Event e) {
+        
+        Event managedEvent = em.find(Event.class, e.getId());
+        if (managedEvent == null) {
+            return new ArrayList<>();
+        }
+
+        List<Customer> registeredCustomers = managedEvent.getCustomerRegistered();
+        List<Customer> attendedCustomers = managedEvent.getCustomerAttended();
+
+        List<Customer> customersMissed = new ArrayList<>(registeredCustomers);
+        customersMissed.removeAll(attendedCustomers);
+        
+        managedEvent.setCustomerMissed(customersMissed);
+        em.merge(managedEvent);
+        return customersMissed;
+    } //end updateMissingCustomers
+    
+    
     
     
     

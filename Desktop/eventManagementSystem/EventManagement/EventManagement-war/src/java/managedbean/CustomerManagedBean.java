@@ -6,7 +6,9 @@ package managedbean;
 
 import entity.Customer;
 import entity.Event;
+import error.NoResultException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
@@ -96,7 +98,8 @@ public class CustomerManagedBean implements Serializable {
     public void setPassword(String password) {
         this.password = password;
     }
-
+    
+    //this will handle the view the list of events registered
     public List<Event> getEventsRegistered() {
         return eventsRegistered;
     }
@@ -123,7 +126,7 @@ public class CustomerManagedBean implements Serializable {
     
     @PostConstruct
     public void init() {
-    
+        loadEventsForOrganiser();
     }
     
     public void handleSearch() {
@@ -185,6 +188,28 @@ public class CustomerManagedBean implements Serializable {
         context.addMessage(null, new FacesMessage("Success",
                 "Successfully updated customer"));
     } //end updateCustomer
+    
+    //handles list all events organised by customer usecase
+    public void loadEventsForOrganiser() {
+        
+        if (selectedCustomer != null) {
+            eventsOrganised = selectedCustomer.getEventsOrganised();
+        } else {
+           eventsOrganised = new ArrayList<>();
+        }
+    } //end loadEventsForOrganiser
+    
+    //This handles register for an event use case - add the constraints later
+    public void registerEvent(Event e) throws NoResultException {
+        customerSessionLocal.addEventRegistered(cId, e); 
+        eventsRegistered = customerSessionLocal.getEventsRegisteredByCustomerId(cId);      
+    }
+    
+    //This handles unregister for an event use case - add the constraints later
+    public void unregisterEvent(Event e) throws NoResultException {
+        customerSessionLocal.removeEventFromEventsRegistered(cId, e);
+        eventsRegistered = customerSessionLocal.getEventsRegisteredByCustomerId(cId);
+    }
     
     
     

@@ -51,8 +51,12 @@ public class Event implements Serializable {
     @Min(0)
     private Long maxCapacity;
     
+    private List<Customer> customerAttended;
+    
+    private List<Customer> customerMissed;
+    
     @ManyToMany(mappedBy = "eventsRegistered",cascade={CascadeType.ALL},fetch = FetchType.EAGER)
-    private List<Customer> attendees;
+    private List<Customer> customerRegistered;
     
     @ManyToOne(cascade={CascadeType.ALL},fetch = FetchType.EAGER)
     private Customer organiser;
@@ -113,12 +117,12 @@ public class Event implements Serializable {
         this.maxCapacity = maxCapacity;
     }
     
-    public List<Customer> getAttendees() {
-        return attendees;
+    public List<Customer> getCustomerRegistered() {
+        return customerRegistered;
     }
 
-    public void setAttendees(List<Customer> attendees) {
-        this.attendees = attendees;
+    public void setCustomerRegistered(List<Customer> customerRegistered) {
+        this.customerRegistered = customerRegistered;
     }
 
     public Customer getOrganiser() {
@@ -127,6 +131,22 @@ public class Event implements Serializable {
 
     public void setOrganiser(Customer organiser) {
         this.organiser = organiser;
+    }
+
+    public List<Customer> getCustomerAttended() {
+        return customerAttended;
+    }
+
+    public void setCustomerAttended(List<Customer> customerAttended) {
+        this.customerAttended = customerAttended;
+    }
+
+    public List<Customer> getCustomerMissed() {
+        return customerMissed;
+    }
+
+    public void setCustomerMissed(List<Customer> customerMissed) {
+        this.customerMissed = customerMissed;
     }
    
     @Override

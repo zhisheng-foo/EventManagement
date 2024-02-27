@@ -5,6 +5,7 @@
 package session;
 
 
+import entity.Customer;
 import entity.Event;
 import error.NoResultException;
 import java.util.List;
@@ -18,7 +19,11 @@ import javax.ejb.Local;
 @Local
 public interface EventSessionLocal {
     
-    public List<Event> searchEvents(String eventTitle);
+    public List<Event> searchEventsByTitle(String eventTitle);
+    
+    public List<Event> searchEventsByOrganiserName(String name);
+    
+    public List<Event> getAllEvents();
     
     public Event getEvent(Long eId) throws NoResultException;
     
@@ -26,6 +31,8 @@ public interface EventSessionLocal {
     
     public void updateEvent(Event e) throws NoResultException;
     
-    List<Event> getEventsByCustomerId(Long cId);
+    public List<Event> getEventsByCustomerId(Long cId);
+    
+    public List<Customer> updateMissingCustomers(Event e);
     
 }

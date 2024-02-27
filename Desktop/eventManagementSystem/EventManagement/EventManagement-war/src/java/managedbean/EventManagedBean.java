@@ -43,9 +43,17 @@ public class EventManagedBean implements Serializable {
     private String eventDescription;
     private Date deadline;
     private Long maxCapacity;
-    private List<Customer> attendees;
+    private List<Customer> registeredCustomer;
+    private List<Customer> attendedCustomers;
+    private List<Customer> missedCustomers;
     private Customer organiser;
-    private List<Event> eventsByOrganiser;
+    private Event selectedEvent;
+    
+    private String searchString; // The search string entered by the user
+    private String searchType;
+    
+    private List<Event> events;
+    
     private Long eId;
     
     
@@ -108,12 +116,12 @@ public class EventManagedBean implements Serializable {
         this.maxCapacity = maxCapacity;
     }
 
-    public List<Customer> getAttendees() {
-        return attendees;
+    public List<Customer> getRegisteredCustomer() {
+        return registeredCustomer;
     }
 
-    public void setAttendees(List<Customer> attendees) {
-        this.attendees = attendees;
+    public void setRegisteredCustomer(List<Customer> registeredCustomer) {
+        this.registeredCustomer = registeredCustomer;
     }
 
     public Customer getOrganiser() {
@@ -139,18 +147,74 @@ public class EventManagedBean implements Serializable {
     public void seteId(Long eId) {
         this.eId = eId;
     }
-
-    public List<Event> getEventsByOrganiser() {
-        return eventsByOrganiser;
+    
+    public Event getSelectedEvent() {
+        return selectedEvent;
     }
 
-    public void setEventsByOrganiser(List<Event> eventsByOrganiser) {
-        this.eventsByOrganiser = eventsByOrganiser;
+    public void setSelectedEvent(Event selectedEvent) {
+        this.selectedEvent = selectedEvent;
     }
-   
+
+    public List<Customer> getAttendedCustomers() {
+        return attendedCustomers;
+    }
+
+    public void setAttendedCustomers(List<Customer> attendedCustomers) {
+        this.attendedCustomers = attendedCustomers;
+    }
+
+    public List<Customer> getMissedCustomers() {
+        return missedCustomers;
+    }
+
+    public void setMissedCustomers(List<Customer> missedCustomers) {
+        this.missedCustomers = missedCustomers;
+    }
+
+    public String getSearchString() {
+        return searchString;
+    }
+
+    public void setSearchString(String searchString) {
+        this.searchString = searchString;
+    }
+
+    public String getSearchType() {
+        return searchType;
+    }
+
+    public void setSearchType(String searchType) {
+        this.searchType = searchType;
+    }
+
+    public List<Event> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<Event> events) {
+        this.events = events;
+    }
+    
+    //Search for an event via title name or organiser name
     @PostConstruct
     public void init() {
-
+        if (searchString == null || searchString.isEmpty()) {
+            events = eventSessionLocal.getAllEvents(); // Method to fetch all events if no search criteria
+        } else {
+            switch (searchType) {
+                case "TITLE":
+                    events = eventSessionLocal.searchEventsByTitle(searchString);
+                    break;
+                case "ORGANISER":
+                    events = eventSessionLocal.searchEventsByOrganiserName(searchString);
+                    break;
+                default:
+                    events = new ArrayList<>(); 
+                    break;
+            }
+        }
+        
     }
 
     public void handleSearch() {
@@ -167,7 +231,7 @@ public class EventManagedBean implements Serializable {
         e.setEventDescription(eventDescription);
         e.setDeadline(deadline);
         e.setMaxCapacity(maxCapacity);
-        e.setAttendees(attendees);
+        e.setCustomerRegistered(registeredCustomer);
         
         //you dun have to setOrganiser as it is handled in addEventOrganised
         
@@ -203,13 +267,84 @@ public class EventManagedBean implements Serializable {
         init();
     }
     
-    //handles list all events organised by customer usecase
-    public void loadEventsForOrganiser() {
-        if (organiser != null) {
-            eventsByOrganiser = eventSessionLocal.getEventsByCustomerId(organiser.getId());
-        } else {
-            // Handle the case where there is no authenticated user
-            eventsByOrganiser = new ArrayList<>();
+ 
+    // handles view details of an event usecase
+    public void loadSelectedEvent() {
+        FacesContext context = FacesContext.getCurrentInstance();
+        try {
+            this.selectedEvent
+                    = eventSessionLocal.getEvent(eId);
+            eventTitle = this.selectedEvent.getEventTitle();
+            eventDate = this.selectedEvent.getEventDate();
+            eventLocation = this.selectedEvent.getEventLocation();
+            eventDescription = this.selectedEvent.getEventDescription();
+            maxCapacity = this.selectedEvent.getMaxCapacity();
+            attendedCustomers = this.selectedEvent.getCustomerAttended();
+            missedCustomers = this.eventSessionLocal.updateMissingCustomers(this.selectedEvent);
+            organiser = this.selectedEvent.getOrganiser();
+        } catch (Exception e) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to load event"));
         }
-    }   
+    }
+    
+    //Mark a user as present or unmark user as present for an event
+    //this handles attendedCustomer, do not confuse with registeredCustomers
+    public void toggleCustomerAttendance(Long customerId, Long eventId) {
+        try {
+            Event event = eventSessionLocal.getEvent(eventId);
+            Customer customer = customerSessonLocal.getCustomer(customerId);
+
+            if (event != null && customer != null) {
+                
+                if (event.getCustomerAttended().contains(customer)) {
+                    event.getCustomerAttended().remove(customer);
+                } else {
+                    event.getCustomerAttended().add(customer);
+                }
+                eventSessionLocal.updateEvent(event);
+
+                // Recalculate missed customers since the attendance list changed
+                missedCustomers = eventSessionLocal.updateMissingCustomers(event);
+                attendedCustomers = event.getCustomerAttended();
+
+                selectedEvent = event;
+
+            } else {
+                FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Event or Customer not found"));
+            }
+        } catch (Exception e) {
+            // Handle any exceptions
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to toggle attendance status"));
+        }
+    }
+    
+    //bonus feature - edit the event itself but with some constraints , some stuff you cannot edit
+    public void updateEvent(ActionEvent evt) {
+        FacesContext context = FacesContext.getCurrentInstance();
+        selectedEvent.setEventTitle(eventTitle);
+        selectedEvent.setEventDescription(eventDescription);
+        
+        //cannot see below the the number of people registered
+        selectedEvent.setMaxCapacity(maxCapacity);
+        selectedEvent.setCustomerRegistered(registeredCustomer);
+        selectedEvent.setCustomerAttended(attendedCustomers);
+        selectedEvent.setCustomerMissed(missedCustomers);
+     
+        try {
+            eventSessionLocal.updateEvent(selectedEvent);
+        } catch (Exception e) {
+            //show with an error icon
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to update Event"));
+            return;
+        }
+        //need to make sure reinitialize the customers collection
+        init();
+        context.addMessage(null, new FacesMessage("Success",
+                "Successfully updated Event"));
+    } //end updateCustomer 
+    
+
+    
+    
+    
 }
