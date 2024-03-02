@@ -2,23 +2,38 @@ package managedbean;
 
 import entity.Customer;
 import error.NoResultException;
+import java.io.IOException;
 import javax.inject.Named;
 import javax.enterprise.context.SessionScoped;
 import java.io.Serializable;
+import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
+import javax.faces.annotation.ManagedProperty;
+import javax.faces.application.FacesMessage;
+import javax.faces.context.FacesContext;
+import javax.inject.Inject;
 import session.CustomerSessionLocal;
+
 
 @Named(value = "authenticationManagedBean")
 @SessionScoped
 public class AuthenticationManagedBean implements Serializable {
 
-    private String username = null;
-    private String password = null;
+    private String username = "";
+    private String password = "";
     @EJB
     CustomerSessionLocal customerSessionLocal;
     private long userId = -1;
-
+    
+    @Inject
+    private CustomerManagedBean customerManagedBean;
+    
+    
     public AuthenticationManagedBean() {
+    }
+    
+    @PostConstruct
+    public void init() {
     }
 
     public String getUsername() {
@@ -45,42 +60,55 @@ public class AuthenticationManagedBean implements Serializable {
         this.userId = userId;
     }
     
-    //login use case
-    public String login() {
-        try {
-            // Use the customerSessionLocal bean to check the credentials
-            Customer customer = customerSessionLocal.validateLogin(username, password);
+    //login use case - login does provide the UI for wrong username / password 
+    public String login() throws IOException, NoResultException {
+        FacesContext context = FacesContext.getCurrentInstance();
+        
 
-            if (customer != null) {
-                // Login successful
-
-                // Store the logged-in user's ID
-                userId = customer.getId(); 
-
-                // Redirect to the secret page
-                return "/secret/secret.xhtml?faces-redirect=true";
-            } else {
-                // Login failed - customer is null (not found or invalid credentials)
-                username = null;
-                password = null;
-                userId = -1;
-                return "login.xhtml";
-            }
-        } catch (NoResultException e) {
-            // Handle the case where no customer is found
-            username = null;
-            password = null;
-            userId = -1;
-            return "login.xhtml";
+        // Check for username
+        if (username == null || username.trim().isEmpty()) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Username Required", "Please enter a username."));
         }
-    } // end login
+
+        // Check for password
+        if (password == null || password.trim().isEmpty()) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Password Required", "Please enter a password."));    
+        }
+       
+        Customer customer = customerSessionLocal.validateLogin(username, password);
+        
+        username = "";
+        password = "";
+
+        if (customer != null) {
+            userId = customer.getId();
+            context.getExternalContext().redirect("./secret/mainpage.xhtml");
+        } else {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Login Error", "Password or username is wrong"));
+            userId = -1;
+        }
+        return "index.xhtml"; 
+    }// end login
     
     //logout use case
     public String logout() {
-        username = null;
-        password = null;
+        username = "";
+        password = "";
         userId = -1;
 
-        return "/login.xhtml?faces-redirect=true";
+        return "/index.xhtml?faces-redirect=true";
     } //end logout
+    
+    //direct to sign up page
+    public String goToSignUp() {
+        username = "";
+        password = "";
+        return "signup?faces-redirect=true";
+    }
+    
+    public String goToLogin() {
+        username = "";
+        password = "";
+        return "index?faces-redirect=true";
+    }
 }

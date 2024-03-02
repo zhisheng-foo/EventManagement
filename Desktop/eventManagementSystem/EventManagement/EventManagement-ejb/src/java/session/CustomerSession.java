@@ -25,10 +25,6 @@ public class CustomerSession implements CustomerSessionLocal {
     @PersistenceContext(unitName = "EventManagement-ejbPU")
     private EntityManager em;
 
-    public void persist(Object object) {
-        em.persist(object);
-    }
-    
     //you can use this method to check whether a customer exist too
     @Override
     public List<Customer> searchCustomers(String name) {
@@ -46,11 +42,16 @@ public class CustomerSession implements CustomerSessionLocal {
     
     @Override
     public Customer validateLogin(String username, String password) throws NoResultException {
-        
-        Query query = em.createQuery("SELECT c FROM Customer c WHERE c.name = :username AND c.password = :password");
+                       
+        TypedQuery<Customer> query = em.createQuery("SELECT c FROM Customer c WHERE c.name = :username AND c.password = :password", Customer.class);
         query.setParameter("username", username);
-        query.setParameter("password", password); 
-        return (Customer) query.getSingleResult();
+        query.setParameter("password", password);
+        try {
+            return (Customer) query.getSingleResult();
+        } catch (Exception ex) {
+            return null;
+        }
+        
     }
 
     @Override

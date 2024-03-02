@@ -9,11 +9,13 @@ body {
 h1 {
     font-family: Arial, "Arial CE", "Lucida Grande CE", lucida, "Helvetica CE", sans-serif;
     border-bottom: 1px solid #AFAFAF; 
-    font-size:  16px;
+    font-size:  50px; /* Increased font size */
     font-weight: bold;
     margin: 0px;
     padding: 0px;
-    color: #D20005;
+    color: #000000;
+    text-align: center; /* Center the text */
+
 }
 
 a:link, a:visited {
@@ -27,3 +29,44 @@ a:link:hover, a:visited:hover  {
   font-weight : bold;
   text-decoration : underline;
 }
+
+.dashboard-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease-in-out;
+}
+.dashboard-card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.dashboard-card-header {
+    font-size: 25px;
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+.dashboard-card button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background-color: #5b9bd5;
+    color: white;
+    border-radius: 4px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+.dashboard-card button:hover {
+    background-color: #008080;
+}
+
+.small-toggle-button {
+    width: 150px;
+    font-size: 15px;
+    padding: 4px 8px;
+    /* Add other styling as needed */
+}
+

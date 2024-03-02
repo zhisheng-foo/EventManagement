@@ -31,7 +31,7 @@ public class AuthenticationFilter implements Filter {
             //redirect to login page if user is not logged in
             //and trying to access "secret/*" paths
 
-            ((HttpServletResponse) response).sendRedirect(request1.getContextPath() + "/login.xhtml");
+            ((HttpServletResponse) response).sendRedirect(request1.getContextPath() + "/index.xhtml");
         } else {
             //authenticated - continue
             chain.doFilter(request1, response);

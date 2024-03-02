@@ -13,6 +13,7 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
@@ -30,23 +31,24 @@ public class Customer implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, length = 32)
+    @Column(nullable = false, length = 100)
     @NotNull
-    @Size(min = 1, max = 32)
+    @Size(min = 1, max = 100)
     private String name;
     
-    @Column(length = 50)
-    @Size(min = 1, max = 50)
+    @Column(length = 300)
+    @Size(min = 1, max = 300)
     private String contactDetails;
     
+  
     private String profilePhoto;
     
-    @Column(length = 20)
-    @Size(min = 1, max = 20)
+    @Column(length = 200)
+    @Size(min = 1, max = 200)
     private String email;
     
-    @Column(nullable = false, length = 50)
-    @Size(min = 1, max = 50)
+    @Column(nullable = false, length = 100)
+    @Size(min = 1, max = 100)
     private String password;
     
     @ManyToMany(cascade={CascadeType.ALL},fetch = FetchType.EAGER)
