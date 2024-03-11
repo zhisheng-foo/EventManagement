@@ -91,15 +91,12 @@ public class CustomerSession implements CustomerSessionLocal {
             throw new NoResultException("Customer (Attendee)not found for ID: " + cId);
         }
         
-        //this persistence is redundant but I am just going to leave it here just in case for the time being
-        em.persist(e);
-        
         attendee.getEventsRegistered().add(e);
         e.getCustomerRegistered().add(attendee);
         
         em.merge(attendee);
         em.merge(e);
-       
+        
     } // end addEventRegistered
     
     @Override
@@ -110,11 +107,8 @@ public class CustomerSession implements CustomerSessionLocal {
             throw new NoResultException("Customer (Organiser) not found for ID: " + cId);
         }
          
-        //this persistence is redundant but I am just going to leave it here just in case for the time being
-        em.persist(e);
-        
         organiser.getEventsOrganised().add(e);
-        e.setOrganiser(organiser);
+        //e.setOrganiser(organiser);
         
         em.merge(organiser);
         em.merge(e);
@@ -132,11 +126,10 @@ public class CustomerSession implements CustomerSessionLocal {
         if (!attendee.getEventsRegistered().contains(e)) {
             throw new IllegalArgumentException("Event not registered by the customer.");
         }
-
-        attendee.getEventsRegistered().remove(e);
-
+        
         e.getCustomerRegistered().remove(attendee);
-
+        attendee.getEventsRegistered().remove(e);
+        
         em.merge(attendee);
         em.merge(e);
     } // end removeEventFromEventsRegistered
@@ -145,23 +138,25 @@ public class CustomerSession implements CustomerSessionLocal {
     @Override
     public void removeEventFromEventOrganised(Long cId, Event e) throws NoResultException {
         Customer organiser = getCustomer(cId);
-
+        
+        e = em.merge(e);
+        
         if (organiser == null) {
             throw new NoResultException("Customer (Organiser) not found for ID: " + cId);
         }
 
-        if (!organiser.getEventsOrganised().contains(e)) {
+        if (organiser.getId() != e.getOrganiser().getId()) {
             throw new IllegalArgumentException("Event not organised by the customer.");
         }
-        
+
         organiser.getEventsOrganised().remove(e);
-
-        e.getCustomerRegistered().clear(); 
-
-        em.remove(em.contains(e) ? e : em.merge(e));
+        e.getCustomerRegistered().clear();
         
+
+        em.remove(e); 
         em.merge(organiser);
-    } // end removeEventFromEventOrganised
+    }
+ // end removeEventFromEventOrganised
     
     @Override
     public void deleteCustomer(Long cId) throws NoResultException {

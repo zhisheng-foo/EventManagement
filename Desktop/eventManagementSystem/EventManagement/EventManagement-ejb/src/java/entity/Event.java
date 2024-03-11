@@ -5,6 +5,7 @@
 package entity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 import javax.persistence.CascadeType;
@@ -14,8 +15,12 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -32,10 +37,11 @@ public class Event implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, length = 50)
-    @Size(min = 1, max = 50)
+    @Column(nullable = false, length = 100)
+    @Size(min = 1, max = 100)
     private String eventTitle;
     
+    @Temporal(TemporalType.TIMESTAMP)
     private Date eventDate;
     
     @Column(nullable = false, length = 100)
@@ -44,25 +50,27 @@ public class Event implements Serializable {
     
     private String eventDescription;
     
+    @Temporal(TemporalType.TIMESTAMP)
     private Date deadline;
     
-    @Column(nullable = false, length = 32)
-    @NotNull
-    @Min(0)
-    private Long maxCapacity;
-    
+   
     private List<Customer> customerAttended;
-    
+   
     private List<Customer> customerMissed;
     
-    @ManyToMany(mappedBy = "eventsRegistered",cascade={CascadeType.ALL},fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "eventsRegistered",cascade={CascadeType.MERGE},fetch = FetchType.EAGER)
     private List<Customer> customerRegistered;
     
-    @ManyToOne(cascade={CascadeType.ALL},fetch = FetchType.EAGER)
+    @ManyToOne(cascade = {CascadeType.MERGE}, fetch = FetchType.EAGER)
     private Customer organiser;
     
     public Long getId() {
         return id;
+    }
+
+    public Event() {
+        customerMissed = new ArrayList<>();
+        customerAttended = new ArrayList<>();
     }
 
     public void setId(Long id) {
@@ -109,14 +117,6 @@ public class Event implements Serializable {
         this.deadline = deadline;
     }
 
-    public Long getMaxCapacity() {
-        return maxCapacity;
-    }
-
-    public void setMaxCapacity(Long maxCapacity) {
-        this.maxCapacity = maxCapacity;
-    }
-    
     public List<Customer> getCustomerRegistered() {
         return customerRegistered;
     }
@@ -132,6 +132,7 @@ public class Event implements Serializable {
     public void setOrganiser(Customer organiser) {
         this.organiser = organiser;
     }
+
 
     public List<Customer> getCustomerAttended() {
         return customerAttended;

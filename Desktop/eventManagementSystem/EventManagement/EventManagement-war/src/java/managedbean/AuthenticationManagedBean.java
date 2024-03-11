@@ -29,6 +29,7 @@ public class AuthenticationManagedBean implements Serializable {
     private CustomerManagedBean customerManagedBean;
     
     
+    
     public AuthenticationManagedBean() {
     }
     
@@ -110,5 +111,9 @@ public class AuthenticationManagedBean implements Serializable {
         username = "";
         password = "";
         return "index?faces-redirect=true";
+    }
+    
+    public String goToEventListing() {
+        return "eventlistingmanagement?faces-redirect=true";
     }
 }

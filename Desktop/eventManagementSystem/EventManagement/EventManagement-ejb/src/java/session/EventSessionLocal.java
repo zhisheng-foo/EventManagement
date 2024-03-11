@@ -8,6 +8,7 @@ package session;
 import entity.Customer;
 import entity.Event;
 import error.NoResultException;
+import java.util.Date;
 import java.util.List;
 import javax.ejb.Local;
 
@@ -19,13 +20,17 @@ import javax.ejb.Local;
 @Local
 public interface EventSessionLocal {
     
-    public List<Event> searchEventsByTitle(String eventTitle);
+    public List<Event> searchEventsByOrganiserNameExcludingOrganiser(String name, Long excludeOrganiserId);
     
-    public List<Event> searchEventsByOrganiserName(String name);
+    public List<Event> getAllEventsExcludingOrganizer(Long organiserId);
     
-    public List<Event> getAllEvents();
+    public List<Event> searchEventsByTitleExcludingOrganizer(String eventTitle, Long organiserId);
     
     public Event getEvent(Long eId) throws NoResultException;
+    
+    public List<Customer> updateAttendingCustomers(Event e , Customer c);
+    
+    public List<Customer> updateMissingCustomers(Event e, Customer c);
     
     public void createEvent(Event e);
     
@@ -33,6 +38,6 @@ public interface EventSessionLocal {
     
     public List<Event> getEventsByCustomerId(Long cId);
     
-    public List<Customer> updateMissingCustomers(Event e);
+    public List<Event> findAllEventsOrganisedByUserId(Long userId);
     
 }

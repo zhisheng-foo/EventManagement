@@ -13,7 +13,6 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
@@ -51,17 +50,16 @@ public class Customer implements Serializable {
     @Size(min = 1, max = 100)
     private String password;
     
-    @ManyToMany(cascade={CascadeType.ALL},fetch = FetchType.EAGER)
+    @ManyToMany(cascade={CascadeType.MERGE},fetch = FetchType.EAGER)
     private List<Event> eventsRegistered;
     
-    @OneToMany(mappedBy = "organiser", cascade={CascadeType.ALL},fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "organiser", cascade={CascadeType.MERGE},fetch = FetchType.EAGER)
     private List<Event> eventsOrganised;
 
     public Customer() {
     }
     
     public Long getId() {
-        System.out.println("testing why is this so hard");
         return id;
     }
 

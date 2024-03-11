@@ -70,3 +70,98 @@ a:link:hover, a:visited:hover  {
     /* Add other styling as needed */
 }
 
+.dialog-details .event-details-panel {
+    margin: 10px;
+    padding: 10px;
+}
+
+.event-label {
+    font-weight: bold;
+    padding-right: 10px;
+    text-align: right;
+}
+
+.event-value {
+    padding-left: 10px;
+    text-align: left;
+}
+
+
+.event-detail-label {
+    color: #5A5A5A;
+    font-size: 30px;
+    font-weight: bold;    
+}
+
+.event-detail-value {
+    color: #000000;
+    font-size: 18px;
+    font-weight: normal;    
+}
+
+.dashboard-card.dialog-details {
+    border: 1px solid #DADADA;
+    border-radius: 4px;
+    box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.16);
+}
+
+.event-dialog .event-details-panel {
+    font-size: 30px; 
+}
+
+.event-dialog .event-details-grid {
+    width: 100%; 
+}
+
+.event-dialog .event-label {
+    font-weight: bold;
+    text-align: left;
+    padding-right: 1rem; 
+}
+
+.event-dialog .event-value {
+    text-align: center;
+    display: inline-block;
+}
+
+.event-dialog {
+    width: 300vw; 
+    max-width: 1000px; 
+}
+
+.ui-dialog .ui-dialog-titlebar {
+    font-size: 40px;
+}
+
+.firstColumn {
+    width: 30%; 
+}
+
+.secondColumn {
+    width: 70%; 
+}
+
+
+.firstColumn, .secondColumn {
+    padding: 5px; 
+}
+
+
+@media (max-width: 1000px) {
+    .firstColumn, .secondColumn {
+        width: 100%; 
+    }
+}
+
+.event-details-grid tr {
+    height: 70px; 
+}
+
+
+.event-details-grid td {
+    padding-top: 10px; 
+    padding-bottom: 10px; 
+}
+
+
+

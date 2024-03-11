@@ -3,38 +3,31 @@ package managedbean;
 import entity.Customer;
 import entity.Event;
 import error.NoResultException;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import org.primefaces.model.file.UploadedFile;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.TimeZone;
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
-import javax.enterprise.context.SessionScoped;
-import javax.faces.annotation.ManagedProperty;
+import javax.enterprise.context.RequestScoped;
 import javax.faces.application.FacesMessage;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.context.Flash;
 import javax.faces.event.ActionEvent;
 import javax.inject.Named;
-
 import javax.faces.view.ViewScoped;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.Part;
-
-import org.primefaces.shaded.commons.io.FilenameUtils;
 import session.CustomerSessionLocal;
 
 /**
@@ -56,22 +49,32 @@ public class CustomerManagedBean implements Serializable {
     private List<Event> eventsRegistered;
     private List<Event> eventsOrganised;
     private Long cId;
-    
     private boolean showPassword = false;
     private String filename = "";
     
     @Inject
     private AuthenticationManagedBean authenticationManagedBean;
     
+    @Inject
+    private EventManagedBean eventManagedBean;
+    
     public CustomerManagedBean() {
     }
-
+    
     public AuthenticationManagedBean getAuthenticationManagedBean() {
         return authenticationManagedBean;
     }
-
+   
     public void setAuthenticationManagedBean(AuthenticationManagedBean authenticationManagedBean) {
         this.authenticationManagedBean = authenticationManagedBean;
+    }
+
+    public EventManagedBean getEventManagedBean() {
+        return eventManagedBean;
+    }
+
+    public void setEventManagedBean(EventManagedBean eventManagedBean) {
+        this.eventManagedBean = eventManagedBean;
     }
     
     public Long getcId() {
@@ -171,10 +174,6 @@ public class CustomerManagedBean implements Serializable {
         showPassword = !showPassword;
     }
 
-    public void setSelectedCustomer(Customer selectedCustomer) {
-        this.selectedCustomer = selectedCustomer;
-    }
-    
     @PostConstruct
     public void init() {
         
@@ -274,18 +273,16 @@ public class CustomerManagedBean implements Serializable {
         FacesContext context = FacesContext.getCurrentInstance();
         try {
             cId = this.authenticationManagedBean.getUserId();
-            System.out.println("Custmer Id :" + cId);
             selectedCustomer = this.customerSessionLocal.getCustomer(cId);
             name = this.selectedCustomer.getName();
             contactDetails = this.selectedCustomer.getContactDetails();
             email = this.selectedCustomer.getEmail();
             //this a little confusing but essentially is the filename
             filename = this.selectedCustomer.getProfilePhoto();
-            System.out.println("Filename : " + filename);
             password = this.selectedCustomer.getPassword();
             eventsRegistered = this.selectedCustomer.getEventsRegistered();
             eventsOrganised = this.selectedCustomer.getEventsOrganised();
-        } catch (Exception e) {
+        } catch (NoResultException e) {
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to load customer"));
         }
     } //end loadSelectedCustomer
@@ -348,33 +345,108 @@ public class CustomerManagedBean implements Serializable {
         context.addMessage(null, new FacesMessage("Success",
                 "Successfully updated customer"));
     } //end updateCustomer
-    /*
-    //handles list all events organised by customer usecase
-    public void loadEventsForOrganiser() {
-        
-        if (selectedCustomer != null) {
-            eventsOrganised = selectedCustomer.getEventsOrganised();
-        } else {
-           eventsOrganised = new ArrayList<>();
-        }
-    } //end loadEventsForOrganiser
-    
-    //This handles register for an event use case - add the constraints later
-    public void registerEvent(Event e) throws NoResultException {
-        customerSessionLocal.addEventRegistered(cId, e); 
-        eventsRegistered = customerSessionLocal.getEventsRegisteredByCustomerId(cId);      
-    }
-    
-    //This handles unregister for an event use case - add the constraints later
-    public void unregisterEvent(Event e) throws NoResultException {
-        customerSessionLocal.removeEventFromEventsRegistered(cId, e);
-        eventsRegistered = customerSessionLocal.getEventsRegisteredByCustomerId(cId);
-    } */
+   
     public void validateNameLength() {
         if (name != null && name.length() > 100) {
             FacesContext context = FacesContext.getCurrentInstance();
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Exceed 100 characters", "The name must not exceed 100 characters."));
         }
     }
+    
+    public void onRegisterEvent(Event event) throws NoResultException, IOException {
+        
+        Date today = eventManagedBean.getToday();
+        
+        /*
+        Change this accordingly to test the constraint for the deadline for registering
+        
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, 2024);
+        calendar.set(Calendar.MONTH, Calendar.MARCH);
+        calendar.set(Calendar.DAY_OF_MONTH, 11);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        
+        Date specificDate = calendar.getTime();
+        */
+        
+        if (today.after(event.getDeadline())) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR, "Registration Closed", "You are not allowed to register for an event after the deadline"));
+            return;
+        }
+        
+        boolean isRegistered = false;
+        for (Event registeredEvent : selectedCustomer.getEventsRegistered()) {
+            if (registeredEvent.getId().equals(event.getId())) {
+                isRegistered = true;
+                break;
+            }
+        }
+        
+        if (isRegistered) {
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_WARN, "Already Registered", "You have ALREADY registered for this event."));
+        } else {
+            
+            this.customerSessionLocal.addEventRegistered(selectedCustomer.getId(), event);
+            isRegistered = true;
+            init();
+            this.eventManagedBean.getEventSessionLocal().updateEvent(event);
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Registered", "You have registered for the event."));
+        }
+    }
+
+    
+    public void onUnRegisterEvent(Event event) throws NoResultException, IOException {
+        
+        Date now = new Date(); // This captures the current date and time.
+        
+        //Change this accordingly to test whether User should be able to unregister for an event any time before the start of the event
+        /* 
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, 2024);
+        calendar.set(Calendar.MONTH, Calendar.MARCH);
+        calendar.set(Calendar.DAY_OF_MONTH, 17);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        
+        Date specificDate = calendar.getTime();
+        */
+        boolean isRegistered = false; 
+        for (Event registeredEvent : selectedCustomer.getEventsRegistered()) {
+            if (registeredEvent.getId().equals(event.getId())) {
+                isRegistered = true; 
+                break;
+            }
+        }
+        
+        if (isRegistered) {
+            
+            if (now.after(event.getEventDate())) {
+
+                FacesContext.getCurrentInstance().addMessage(null,
+                        new FacesMessage(FacesMessage.SEVERITY_WARN, "Unregistration Failed",
+                                "You cannot unregister because the event has already started."));
+                return;
+            }
+            
+            this.customerSessionLocal.removeEventFromEventsRegistered(selectedCustomer.getId(), event);      
+            selectedCustomer.getEventsRegistered().removeIf(e -> e.getId().equals(event.getId()));
+            init();
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_INFO, "Unregistered", "You have unregistered for the event."));
+        } else {
+            // If not registered, show a warning message
+            FacesContext.getCurrentInstance().addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_WARN, "Not Registered", "You cannot unregister because you are not registered for this event."));
+        }
+    }
+
 
 }

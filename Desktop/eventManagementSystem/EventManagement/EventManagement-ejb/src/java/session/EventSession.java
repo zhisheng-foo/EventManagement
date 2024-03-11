@@ -7,7 +7,10 @@ package session;
 import entity.Customer;
 import entity.Event;
 import error.NoResultException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -28,36 +31,54 @@ public class EventSession implements EventSessionLocal {
     public void persist(Object object) {
         em.persist(object);
     }
-    
-    
+   
     @Override
-    public List<Event> searchEventsByTitle(String eventTitle) {
+    public List<Event> searchEventsByTitleExcludingOrganizer(String eventTitle, Long organiserId) {
         Query q;
         if (eventTitle != null) {
             q = em.createQuery("SELECT e FROM Event e WHERE "
-                    + "LOWER(e.eventTitle) LIKE :eventTitle");
+                    + "LOWER(e.eventTitle) LIKE :eventTitle AND e.organiser.id <> :organiserId");
             q.setParameter("eventTitle", "%" + eventTitle.toLowerCase() + "%");
+            q.setParameter("organiserId", organiserId);
         } else {
-            q = em.createQuery("SELECT e FROM Event e");
+            
+            q = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id <> :organiserId");
+            q.setParameter("organiserId", organiserId);
         }
 
         return q.getResultList();
-    } //end searchEventsByTitle
+    } //end searchEventsByTitleExcludingOrganizer
+
     
     @Override
-    public List<Event> searchEventsByOrganiserName(String name) {
-        
+    public List<Event> searchEventsByOrganiserNameExcludingOrganiser(String name, Long excludeOrganiserId) {
         TypedQuery<Event> query = em.createQuery(
-                "SELECT e FROM Event e WHERE LOWER(e.organiser.name) LIKE LOWER(:name)", Event.class);
+                "SELECT e FROM Event e WHERE LOWER(e.organiser.name) LIKE LOWER(:name) AND e.organiser.id <> :excludeOrganiserId", Event.class);
         query.setParameter("name", "%" + name + "%");
+        query.setParameter("excludeOrganiserId", excludeOrganiserId);
         return query.getResultList();
     } //end searchEventsByOrganiserName
+   
+    @Override
+    public List<Event> findAllEventsOrganisedByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+
+        Query query = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id = :id");
+        query.setParameter("id", userId);
+
+        return query.getResultList();
+    }
+
     
     @Override
-    public List<Event> getAllEvents() {
-        TypedQuery<Event> query = em.createQuery("SELECT e FROM Event e", Event.class);
+    public List<Event> getAllEventsExcludingOrganizer(Long organiserId) {
+        TypedQuery<Event> query = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id <> :organiserId", Event.class);
+        query.setParameter("organiserId", organiserId);
         return query.getResultList();
-    } //end getAllEvents
+    } //end getAllEventsExcludingOrganizer
+
     
     @Override
     public Event getEvent(Long eId) throws NoResultException {
@@ -85,9 +106,24 @@ public class EventSession implements EventSessionLocal {
         oldE.setEventLocation(e.getEventLocation());
         oldE.setEventDate(e.getEventDate());
         oldE.setDeadline(e.getDeadline());
-        oldE.setMaxCapacity(e.getMaxCapacity());
-        oldE.setCustomerRegistered(e.getCustomerRegistered());    
+        updateEventCustomers(oldE.getCustomerRegistered(), e.getCustomerRegistered()); // Use the actual Customer list
+        updateEventCustomers(oldE.getCustomerMissed(), e.getCustomerMissed());
+        updateEventCustomers(oldE.getCustomerAttended(), e.getCustomerAttended());
+
+        em.merge(oldE);
     } // end updateEvent
+    
+    private void updateEventCustomers(List<Customer> oldCustomers, List<Customer> newCustomers) {
+        oldCustomers.clear();
+        newCustomers.stream().map(newCustomer -> em.find(Customer.class, newCustomer.getId())).forEachOrdered(managedCustomer -> {
+            if (managedCustomer != null) {
+                oldCustomers.add(managedCustomer);
+            } else {
+                // Handle the case where the customer might not be found in the database
+                // This might involve logging, throwing an exception, or deciding to ignore
+            }
+        });
+    }
     
     @Override
     public List<Event> getEventsByCustomerId(Long cId) {
@@ -97,24 +133,28 @@ public class EventSession implements EventSessionLocal {
         return query.getResultList();
     } // end getEventsByCustomerId
         
+    
     @Override
-    public List<Customer> updateMissingCustomers(Event e) {
-        
+    public List<Customer> updateAttendingCustomers(Event e , Customer c) {
         Event managedEvent = em.find(Event.class, e.getId());
-        if (managedEvent == null) {
-            return new ArrayList<>();
-        }
-
-        List<Customer> registeredCustomers = managedEvent.getCustomerRegistered();
         List<Customer> attendedCustomers = managedEvent.getCustomerAttended();
-
-        List<Customer> customersMissed = new ArrayList<>(registeredCustomers);
-        customersMissed.removeAll(attendedCustomers);
         
-        managedEvent.setCustomerMissed(customersMissed);
-        em.merge(managedEvent);
-        return customersMissed;
-    } //end updateMissingCustomers
+        attendedCustomers.add(c);
+        e.getCustomerAttended().add(c);
+        return managedEvent.getCustomerAttended();
+    }
+    
+    @Override
+    public List<Customer> updateMissingCustomers(Event e, Customer c) {
+        Event managedEvent = em.find(Event.class, e.getId());
+        List<Customer> missingCustomers = managedEvent.getCustomerMissed();
+
+        missingCustomers.add(c);
+        e.getCustomerMissed().add(c);
+        return managedEvent.getCustomerMissed();
+    }
+    
+    
     
     
     

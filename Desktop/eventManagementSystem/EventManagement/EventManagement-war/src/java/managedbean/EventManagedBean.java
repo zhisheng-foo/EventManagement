@@ -7,18 +7,30 @@ package managedbean;
 import entity.Customer;
 import entity.Event;
 import error.NoResultException;
+import java.io.IOException;
 import javax.inject.Named;
 import javax.faces.view.ViewScoped;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.faces.application.FacesMessage;
+import javax.faces.component.UIComponent;
+import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
+import javax.faces.context.Flash;
 import javax.faces.event.ActionEvent;
+import javax.faces.event.AjaxBehaviorEvent;
+import javax.faces.validator.ValidatorException;
+import javax.inject.Inject;
 import session.CustomerSessionLocal;
 import session.EventSessionLocal;
 
@@ -34,27 +46,32 @@ public class EventManagedBean implements Serializable {
     EventSessionLocal eventSessionLocal;
     
     @EJB
-    CustomerSessionLocal customerSessonLocal;
-    
+    CustomerSessionLocal customerSessionLocal;
+    private static final Logger LOGGER = Logger.getLogger(EventManagedBean.class.getName());
     
     private String eventTitle;
     private Date eventDate;
     private String eventLocation;
     private String eventDescription;
     private Date deadline;
-    private Long maxCapacity;
-    private List<Customer> registeredCustomer;
+    private List<Customer> registeredCustomers;
     private List<Customer> attendedCustomers;
     private List<Customer> missedCustomers;
-    private Customer organiser;
+    
+    private long organiserId;
     private Event selectedEvent;
     
-    private String searchString; // The search string entered by the user
-    private String searchType;
+    private String searchString; 
+    private String searchType = "TITLE";
+    private String validationMessage;
     
     private List<Event> events;
     
-    private Long eId;
+    private Long eId = new Long(-1);
+    
+    @Inject
+    private CustomerManagedBean customerManagedBean;
+    
     
     
     public EventManagedBean() {
@@ -66,6 +83,14 @@ public class EventManagedBean implements Serializable {
 
     public void setEventSessionLocal(EventSessionLocal eventSessionLocal) {
         this.eventSessionLocal = eventSessionLocal;
+    }
+
+    public CustomerManagedBean getCustomerManagedBean() {
+        return customerManagedBean;
+    }
+
+    public void setCustomerManagedBean(CustomerManagedBean customerManagedBean) {
+        this.customerManagedBean = customerManagedBean;
     }
 
     public String getEventTitle() {
@@ -108,36 +133,28 @@ public class EventManagedBean implements Serializable {
         this.deadline = deadline;
     }
 
-    public Long getMaxCapacity() {
-        return maxCapacity;
+    public List<Customer> getRegisteredCustomers() {
+        return registeredCustomers;
     }
 
-    public void setMaxCapacity(Long maxCapacity) {
-        this.maxCapacity = maxCapacity;
+    public void setRegisteredCustomers(List<Customer> registeredCustomers) {
+        this.registeredCustomers = registeredCustomers;
     }
 
-    public List<Customer> getRegisteredCustomer() {
-        return registeredCustomer;
+    public long getOrganiserId() {
+        return organiserId;
     }
 
-    public void setRegisteredCustomer(List<Customer> registeredCustomer) {
-        this.registeredCustomer = registeredCustomer;
+    public void setOrganiserId(long organiserId) {
+        this.organiserId = organiserId;
     }
 
-    public Customer getOrganiser() {
-        return organiser;
+    public CustomerSessionLocal getCustomerSessionLocal() {
+        return customerSessionLocal;
     }
 
-    public void setOrganiser(Customer organiser) {
-        this.organiser = organiser;
-    }
-
-    public CustomerSessionLocal getCustomerSessonLocal() {
-        return customerSessonLocal;
-    }
-
-    public void setCustomerSessonLocal(CustomerSessionLocal customerSessonLocal) {
-        this.customerSessonLocal = customerSessonLocal;
+    public void setCustomerSessionLocal(CustomerSessionLocal customerSessionLocal) {
+        this.customerSessionLocal = customerSessionLocal;
     }
 
     public Long geteId() {
@@ -195,34 +212,64 @@ public class EventManagedBean implements Serializable {
     public void setEvents(List<Event> events) {
         this.events = events;
     }
+
+    public String getValidationMessage() {
+        return validationMessage;
+    }
+
+    public void setValidationMessage(String validationMessage) {
+        this.validationMessage = validationMessage;
+    }
     
-    //Search for an event via title name or organiser name
+    public Date getToday() {
+        return new Date(); // Returns today's date
+    }
+      
+    
     @PostConstruct
     public void init() {
-        if (searchString == null || searchString.isEmpty()) {
-            events = eventSessionLocal.getAllEvents(); // Method to fetch all events if no search criteria
-        } else {
-            switch (searchType) {
-                case "TITLE":
-                    events = eventSessionLocal.searchEventsByTitle(searchString);
-                    break;
-                case "ORGANISER":
-                    events = eventSessionLocal.searchEventsByOrganiserName(searchString);
-                    break;
-                default:
-                    events = new ArrayList<>(); 
-                    break;
-            }
-        }
+        String viewId = FacesContext.getCurrentInstance().getViewRoot().getViewId();
+        Long customerId = this.customerManagedBean.getSelectedCustomer().getId();
+        if (viewId != null && viewId.endsWith("/eventlistingmanagement.xhtml")) {
+            
+            this.events = eventSessionLocal.findAllEventsOrganisedByUserId(customerId);
+            
+        } else if (viewId != null && viewId.endsWith("/eventregistration.xhtml")) {
+            if (searchString == null || searchString.equals("")) {
+                
+                this.events = eventSessionLocal.getAllEventsExcludingOrganizer(customerId);
+            } else {
+            
+                switch (searchType) {
+                    case "TITLE":
+                        events = eventSessionLocal.searchEventsByTitleExcludingOrganizer(searchString , customerId);
+                        break;
+                    case "ORGANISER":
+                        events = eventSessionLocal.searchEventsByOrganiserNameExcludingOrganiser(searchString, customerId);
+                        break;
+                    default:
+                        events = new ArrayList<>(); 
+                        break;
+                } 
+            } 
         
+        }
     }
+        
+    
 
     public void handleSearch() {
         init();
     } //end handleSearch
     
+    
     //handles add an event usecase - set the constraints later when you implement it
     public void addEvent(ActionEvent evt) throws NoResultException {
+        if (eventTitle != null && eventTitle.length() > 100) {
+            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Validation Error", "Name cannot be more than 100 characters"));
+            return;
+        }
+        
         Event e = new Event();
         
         e.setEventTitle(eventTitle);
@@ -230,22 +277,41 @@ public class EventManagedBean implements Serializable {
         e.setEventLocation(eventLocation);
         e.setEventDescription(eventDescription);
         e.setDeadline(deadline);
-        e.setMaxCapacity(maxCapacity);
-        e.setCustomerRegistered(registeredCustomer);
         
-        //you dun have to setOrganiser as it is handled in addEventOrganised
-        
-        customerSessonLocal.addEventOrganised(organiser.getId(),e); 
+        long cId = this.customerManagedBean.getcId();
+        this.setOrganiserId(cId);
+        e.setOrganiser(this.customerSessionLocal.getCustomer(organiserId));
+        e.getOrganiser().getEventsOrganised().add(e);
+        this.customerManagedBean.getSelectedCustomer().getEventsOrganised().add(e);
         eventSessionLocal.createEvent(e);
-      
+        
+        FacesContext facesContext = FacesContext.getCurrentInstance();
+        ExternalContext externalContext = facesContext.getExternalContext();
+        Flash flash = externalContext.getFlash();
+        flash.setKeepMessages(true);
+        facesContext.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Event Added Successfully"));
+        
+        try {
+            // Perform the redirect to the same page
+            ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+            ec.redirect(ec.getRequestContextPath() + "/secret/createEvent.xhtml");
+            eventTitle = "";
+            eventDate = null;
+            eventLocation = "";
+            eventDescription = "";
+            deadline = null;
+        } catch (IOException ex) {
+
+        }
     } //end addEvent
+    
     
     //handles deleteEvent use case
     public void deleteEvent() {
         FacesContext context = FacesContext.getCurrentInstance();
         Map<String, String> params = context.getExternalContext().getRequestParameterMap();
         String eIdStr = params.get("eId");
-
+        
         if (eIdStr == null || eIdStr.isEmpty()) {
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Event ID is missing"));
             return;
@@ -253,98 +319,76 @@ public class EventManagedBean implements Serializable {
 
         eId = Long.parseLong(eIdStr);
         Event eventToDelete;
+        
+       
 
         try {
             // Retrieve the event from the database
             eventToDelete = eventSessionLocal.getEvent(eId);
-            customerSessonLocal.removeEventFromEventOrganised(eId, eventToDelete);
+            customerSessionLocal.removeEventFromEventOrganised(customerManagedBean.getSelectedCustomer().getId(), eventToDelete);
             context.addMessage(null, new FacesMessage("Success", "Successfully deleted event"));
-        } catch (Exception e) {
+        } catch (NoResultException e) {
             
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to delete event"));
             return;
         }
         init();
     }
-    
- 
-    // handles view details of an event usecase
-    public void loadSelectedEvent() {
-        FacesContext context = FacesContext.getCurrentInstance();
-        try {
-            this.selectedEvent
-                    = eventSessionLocal.getEvent(eId);
-            eventTitle = this.selectedEvent.getEventTitle();
-            eventDate = this.selectedEvent.getEventDate();
-            eventLocation = this.selectedEvent.getEventLocation();
-            eventDescription = this.selectedEvent.getEventDescription();
-            maxCapacity = this.selectedEvent.getMaxCapacity();
-            attendedCustomers = this.selectedEvent.getCustomerAttended();
-            missedCustomers = this.eventSessionLocal.updateMissingCustomers(this.selectedEvent);
-            organiser = this.selectedEvent.getOrganiser();
-        } catch (Exception e) {
-            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to load event"));
-        }
-    }
-    
-    //Mark a user as present or unmark user as present for an event
-    //this handles attendedCustomer, do not confuse with registeredCustomers
-    public void toggleCustomerAttendance(Long customerId, Long eventId) {
-        try {
-            Event event = eventSessionLocal.getEvent(eventId);
-            Customer customer = customerSessonLocal.getCustomer(customerId);
-
-            if (event != null && customer != null) {
-                
-                if (event.getCustomerAttended().contains(customer)) {
-                    event.getCustomerAttended().remove(customer);
-                } else {
-                    event.getCustomerAttended().add(customer);
-                }
-                eventSessionLocal.updateEvent(event);
-
-                // Recalculate missed customers since the attendance list changed
-                missedCustomers = eventSessionLocal.updateMissingCustomers(event);
-                attendedCustomers = event.getCustomerAttended();
-
-                selectedEvent = event;
-
-            } else {
-                FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Event or Customer not found"));
-            }
-        } catch (Exception e) {
-            // Handle any exceptions
-            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to toggle attendance status"));
-        }
-    }
-    
-    //bonus feature - edit the event itself but with some constraints , some stuff you cannot edit
-    public void updateEvent(ActionEvent evt) {
-        FacesContext context = FacesContext.getCurrentInstance();
-        selectedEvent.setEventTitle(eventTitle);
-        selectedEvent.setEventDescription(eventDescription);
-        
-        //cannot see below the the number of people registered
-        selectedEvent.setMaxCapacity(maxCapacity);
-        selectedEvent.setCustomerRegistered(registeredCustomer);
-        selectedEvent.setCustomerAttended(attendedCustomers);
-        selectedEvent.setCustomerMissed(missedCustomers);
      
-        try {
-            eventSessionLocal.updateEvent(selectedEvent);
-        } catch (Exception e) {
-            //show with an error icon
-            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to update Event"));
-            return;
-        }
-        //need to make sure reinitialize the customers collection
-        init();
-        context.addMessage(null, new FacesMessage("Success",
-                "Successfully updated Event"));
-    } //end updateCustomer 
     
+    
+    // handles view details of an event usecase
+    
+    public void loadSelectedEvent() {
+       
+        eventTitle = this.selectedEvent.getEventTitle();
+        eventDate = this.selectedEvent.getEventDate();
+        eventLocation = this.selectedEvent.getEventLocation();
+        eventDescription = this.selectedEvent.getEventDescription();
+        attendedCustomers = this.selectedEvent.getCustomerAttended();
+        missedCustomers = this.selectedEvent.getCustomerMissed();
+        registeredCustomers = this.selectedEvent.getCustomerRegistered();
+        organiserId = this.selectedEvent.getOrganiser().getId();
+    }
+    
+    public void markAsPresent(Long cId) {
+        
+        try {
+            
+            Customer customer = customerSessionLocal.getCustomer(cId);
+            if(!selectedEvent.getCustomerAttended().contains(customer)) {
+                
+                attendedCustomers = eventSessionLocal.updateAttendingCustomers(selectedEvent ,customer);
+                System.out.print("Selected Customer is marked as present");     
+            }  
+           
+        } catch (Exception e) {
+            
+            System.out.print("Selected Customer is not marked as present");
+          
+        }
+    }
+    
+    public void markAsMissing(Long cId) {
+
+        try {
+
+            Customer customer = customerSessionLocal.getCustomer(cId);
+            if (!selectedEvent.getCustomerMissed().contains(customer)) {
+
+                missedCustomers = eventSessionLocal.updateMissingCustomers(selectedEvent, customer);
+                System.out.print("Selected Customer is marked as unpresent");      
+            }
+        } catch (NoResultException e) {
+
+            System.out.print("Selected Customer is not marked as present");
+
+        }
+    }
 
     
     
     
+    
+   
 }
