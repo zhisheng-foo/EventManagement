@@ -11,13 +11,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
-import javax.enterprise.context.RequestScoped;
 import javax.faces.application.FacesMessage;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
@@ -379,6 +376,8 @@ public class CustomerManagedBean implements Serializable {
         }
         
         boolean isRegistered = false;
+        
+        System.out.println(selectedCustomer.getEventsRegistered());
         for (Event registeredEvent : selectedCustomer.getEventsRegistered()) {
             if (registeredEvent.getId().equals(event.getId())) {
                 isRegistered = true;
@@ -390,11 +389,11 @@ public class CustomerManagedBean implements Serializable {
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_WARN, "Already Registered", "You have ALREADY registered for this event."));
         } else {
-            
             this.customerSessionLocal.addEventRegistered(selectedCustomer.getId(), event);
+            System.out.println(selectedCustomer.getEventsRegistered());
             isRegistered = true;
             init();
-            this.eventManagedBean.getEventSessionLocal().updateEvent(event);
+            System.out.println(selectedCustomer.getEventsRegistered());
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_INFO, "Registered", "You have registered for the event."));
         }
@@ -435,18 +434,15 @@ public class CustomerManagedBean implements Serializable {
                                 "You cannot unregister because the event has already started."));
                 return;
             }
-            
             this.customerSessionLocal.removeEventFromEventsRegistered(selectedCustomer.getId(), event);      
             selectedCustomer.getEventsRegistered().removeIf(e -> e.getId().equals(event.getId()));
-            init();
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_INFO, "Unregistered", "You have unregistered for the event."));
+            init();
         } else {
             // If not registered, show a warning message
             FacesContext.getCurrentInstance().addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_WARN, "Not Registered", "You cannot unregister because you are not registered for this event."));
         }
     }
-
-
 }

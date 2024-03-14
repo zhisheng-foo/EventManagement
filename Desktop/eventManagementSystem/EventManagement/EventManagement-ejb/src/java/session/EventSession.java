@@ -7,10 +7,6 @@ package session;
 import entity.Customer;
 import entity.Event;
 import error.NoResultException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -70,16 +66,14 @@ public class EventSession implements EventSessionLocal {
 
         return query.getResultList();
     }
-
-    
+ 
     @Override
     public List<Event> getAllEventsExcludingOrganizer(Long organiserId) {
         TypedQuery<Event> query = em.createQuery("SELECT e FROM Event e WHERE e.organiser.id <> :organiserId", Event.class);
         query.setParameter("organiserId", organiserId);
         return query.getResultList();
     } //end getAllEventsExcludingOrganizer
-
-    
+ 
     @Override
     public Event getEvent(Long eId) throws NoResultException {
         Event event = em.find(Event.class, eId);
@@ -106,7 +100,7 @@ public class EventSession implements EventSessionLocal {
         oldE.setEventLocation(e.getEventLocation());
         oldE.setEventDate(e.getEventDate());
         oldE.setDeadline(e.getDeadline());
-        updateEventCustomers(oldE.getCustomerRegistered(), e.getCustomerRegistered()); // Use the actual Customer list
+        updateEventCustomers(oldE.getCustomerRegistered(), e.getCustomerRegistered()); 
         updateEventCustomers(oldE.getCustomerMissed(), e.getCustomerMissed());
         updateEventCustomers(oldE.getCustomerAttended(), e.getCustomerAttended());
 
@@ -118,9 +112,6 @@ public class EventSession implements EventSessionLocal {
         newCustomers.stream().map(newCustomer -> em.find(Customer.class, newCustomer.getId())).forEachOrdered(managedCustomer -> {
             if (managedCustomer != null) {
                 oldCustomers.add(managedCustomer);
-            } else {
-                // Handle the case where the customer might not be found in the database
-                // This might involve logging, throwing an exception, or deciding to ignore
             }
         });
     }
@@ -133,7 +124,6 @@ public class EventSession implements EventSessionLocal {
         return query.getResultList();
     } // end getEventsByCustomerId
         
-    
     @Override
     public List<Customer> updateAttendingCustomers(Event e , Customer c) {
         Event managedEvent = em.find(Event.class, e.getId());
@@ -154,11 +144,23 @@ public class EventSession implements EventSessionLocal {
         return managedEvent.getCustomerMissed();
     }
     
+    @Override
+    public List<Customer> removeAttendingCustomers(Event e, Customer c) {
+        Event managedEvent = em.find(Event.class, e.getId());
+        List<Customer> attendedCustomers = managedEvent.getCustomerAttended();
+        attendedCustomers.remove(c);
+        e.getCustomerAttended().remove(c);
+        return managedEvent.getCustomerAttended();
+    }
     
-    
-    
-    
-    
-    
+    @Override
+    public List<Customer> removeMissingCustomers(Event e, Customer c) {
+        Event managedEvent = em.find(Event.class, e.getId());
+        List<Customer> missingCustomers = managedEvent.getCustomerMissed();
+        
+        missingCustomers.remove(c);
+        e.getCustomerMissed().remove(c);
+        return managedEvent.getCustomerMissed();
+    }
 
 }

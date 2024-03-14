@@ -81,81 +81,102 @@ public class CustomerSession implements CustomerSessionLocal {
          oldC.setPassword(c.getPassword());
          oldC.setEventsOrganised(c.getEventsOrganised());
          oldC.setEventsRegistered(c.getEventsRegistered());
+         
+         em.merge(oldC);
     } // end updateCustomer
     
     @Override
     public void addEventRegistered(Long cId, Event e) throws NoResultException {
         Customer attendee = getCustomer(cId);
+        Event eventToAdd = em.find(Event.class, e.getId());
         
         if (attendee == null) {
             throw new NoResultException("Customer (Attendee)not found for ID: " + cId);
         }
         
-        attendee.getEventsRegistered().add(e);
-        e.getCustomerRegistered().add(attendee);
+        eventToAdd.getCustomerRegistered().add(attendee);
+        attendee.getEventsRegistered().add(eventToAdd);
+        
         
         em.merge(attendee);
-        em.merge(e);
-        
+        em.merge(eventToAdd);
     } // end addEventRegistered
     
     @Override
     public void addEventOrganised(Long cId, Event e ) throws NoResultException {
         Customer organiser = getCustomer(cId);
+        Event managedEvent = em.find(Event.class, e.getId());
         
          if (organiser == null) {
             throw new NoResultException("Customer (Organiser) not found for ID: " + cId);
         }
          
-        organiser.getEventsOrganised().add(e);
+        organiser.getEventsOrganised().add(managedEvent);
         //e.setOrganiser(organiser);
         
         em.merge(organiser);
-        em.merge(e);
+        em.merge(managedEvent);
     } //end addEventOrganised
     
     //Note that the event is not yet removed from the database
     @Override
     public void removeEventFromEventsRegistered(Long cId, Event e) throws NoResultException {
-        Customer attendee = getCustomer(cId);
+        Customer attendee = getCustomer(cId); 
+        Event eventToRemove = em.find(Event.class, e.getId());
 
         if (attendee == null) {
             throw new NoResultException("Customer (Attendee) not found for ID: " + cId);
         }
 
-        if (!attendee.getEventsRegistered().contains(e)) {
+        if (!attendee.getEventsRegistered().contains(eventToRemove)) {
             throw new IllegalArgumentException("Event not registered by the customer.");
         }
         
-        e.getCustomerRegistered().remove(attendee);
-        attendee.getEventsRegistered().remove(e);
+        attendee.getEventsRegistered().remove(eventToRemove);
+        eventToRemove.getCustomerRegistered().remove(attendee);
         
+        em.merge(eventToRemove);
         em.merge(attendee);
-        em.merge(e);
+        
     } // end removeEventFromEventsRegistered
     
     //this works as  a deleteEvent method 
     @Override
     public void removeEventFromEventOrganised(Long cId, Event e) throws NoResultException {
-        Customer organiser = getCustomer(cId);
         
-        e = em.merge(e);
-        
+        Customer organiser = em.find(Customer.class, cId);
+        Event managedEvent = em.find(Event.class, e.getId());
+
         if (organiser == null) {
             throw new NoResultException("Customer (Organiser) not found for ID: " + cId);
         }
 
-        if (organiser.getId() != e.getOrganiser().getId()) {
+        if (managedEvent == null) {
+            throw new NoResultException("Event not found for ID: " + e.getId());
+        }
+ 
+        if (!organiser.getId().equals(managedEvent.getOrganiser().getId())) {
             throw new IllegalArgumentException("Event not organised by the customer.");
         }
 
-        organiser.getEventsOrganised().remove(e);
-        e.getCustomerRegistered().clear();
+        organiser.getEventsOrganised().remove(managedEvent);
+        
+        // Remove the event from each customer's list of events registered
+        for (Customer customer : managedEvent.getCustomerRegistered()) {
+            if(customer.getEventsRegistered().contains(managedEvent)) {
+            
+                customer.getEventsRegistered().remove(managedEvent);
+                em.merge(customer);
+            }
+            
+        }
+        managedEvent.getCustomerRegistered().clear();
         
 
-        em.remove(e); 
+        em.remove(managedEvent);
         em.merge(organiser);
     }
+
  // end removeEventFromEventOrganised
     
     @Override
@@ -189,7 +210,4 @@ public class CustomerSession implements CustomerSessionLocal {
         return query.getResultList();
     
     }
-    
-    
-
 }

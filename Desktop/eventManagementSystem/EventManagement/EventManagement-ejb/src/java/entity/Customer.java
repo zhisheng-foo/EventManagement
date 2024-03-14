@@ -39,7 +39,6 @@ public class Customer implements Serializable {
     @Size(min = 1, max = 300)
     private String contactDetails;
     
-  
     private String profilePhoto;
     
     @Column(length = 200)

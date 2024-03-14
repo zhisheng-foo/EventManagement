@@ -21,8 +21,6 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 /**
@@ -53,9 +51,20 @@ public class Event implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date deadline;
     
-   
+    @ManyToMany
+    @JoinTable(
+            name = "event_customer_attended",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "customer_id")
+    )
     private List<Customer> customerAttended;
-   
+    
+    @ManyToMany
+    @JoinTable(
+            name = "event_customer_missed",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "customer_id")
+    )
     private List<Customer> customerMissed;
     
     @ManyToMany(mappedBy = "eventsRegistered",cascade={CascadeType.MERGE},fetch = FetchType.EAGER)

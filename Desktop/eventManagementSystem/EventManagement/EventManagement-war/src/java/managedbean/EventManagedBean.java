@@ -12,24 +12,17 @@ import javax.inject.Named;
 import javax.faces.view.ViewScoped;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.faces.application.FacesMessage;
-import javax.faces.component.UIComponent;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.context.Flash;
 import javax.faces.event.ActionEvent;
-import javax.faces.event.AjaxBehaviorEvent;
-import javax.faces.validator.ValidatorException;
 import javax.inject.Inject;
 import session.CustomerSessionLocal;
 import session.EventSessionLocal;
@@ -47,7 +40,6 @@ public class EventManagedBean implements Serializable {
     
     @EJB
     CustomerSessionLocal customerSessionLocal;
-    private static final Logger LOGGER = Logger.getLogger(EventManagedBean.class.getName());
     
     private String eventTitle;
     private Date eventDate;
@@ -67,12 +59,10 @@ public class EventManagedBean implements Serializable {
     
     private List<Event> events;
     
-    private Long eId = new Long(-1);
+    private Long eId;
     
     @Inject
     private CustomerManagedBean customerManagedBean;
-    
-    
     
     public EventManagedBean() {
     }
@@ -225,7 +215,6 @@ public class EventManagedBean implements Serializable {
         return new Date(); // Returns today's date
     }
       
-    
     @PostConstruct
     public void init() {
         String viewId = FacesContext.getCurrentInstance().getViewRoot().getViewId();
@@ -261,7 +250,6 @@ public class EventManagedBean implements Serializable {
     public void handleSearch() {
         init();
     } //end handleSearch
-    
     
     //handles add an event usecase - set the constraints later when you implement it
     public void addEvent(ActionEvent evt) throws NoResultException {
@@ -320,25 +308,20 @@ public class EventManagedBean implements Serializable {
         eId = Long.parseLong(eIdStr);
         Event eventToDelete;
         
-       
-
         try {
             // Retrieve the event from the database
             eventToDelete = eventSessionLocal.getEvent(eId);
             customerSessionLocal.removeEventFromEventOrganised(customerManagedBean.getSelectedCustomer().getId(), eventToDelete);
+            init();
             context.addMessage(null, new FacesMessage("Success", "Successfully deleted event"));
         } catch (NoResultException e) {
             
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Unable to delete event"));
             return;
         }
-        init();
     }
-     
-    
-    
-    // handles view details of an event usecase
-    
+        
+    // handles view details of an event usecase 
     public void loadSelectedEvent() {
        
         eventTitle = this.selectedEvent.getEventTitle();
@@ -352,16 +335,44 @@ public class EventManagedBean implements Serializable {
     }
     
     public void markAsPresent(Long cId) {
-        
+        FacesContext context = FacesContext.getCurrentInstance();
         try {
             
             Customer customer = customerSessionLocal.getCustomer(cId);
+            if(selectedEvent.getCustomerAttended().contains(customer)) {
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Customer already marked as present"));
+                return;
+            }
+             
+            if(selectedEvent.getCustomerMissed().contains(customer)) {
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Customer is already marked as not present , revert back first"));
+                return;
+            }
+             
             if(!selectedEvent.getCustomerAttended().contains(customer)) {
                 
                 attendedCustomers = eventSessionLocal.updateAttendingCustomers(selectedEvent ,customer);
-                System.out.print("Selected Customer is marked as present");     
+                this.getEventSessionLocal().updateEvent(selectedEvent);
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Customer is marked as present"));
             }  
            
+        } catch (Exception e) {
+            
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Selected Customer is not marked as present"));
+          
+        }
+    }
+    
+    public void revertPresent(Long cId) {
+        FacesContext context = FacesContext.getCurrentInstance();
+        try {
+            
+            Customer customer = customerSessionLocal.getCustomer(cId);
+            if(selectedEvent.getCustomerAttended().contains(customer)) {
+                attendedCustomers = eventSessionLocal.removeAttendingCustomers(selectedEvent, customer);
+                this.getEventSessionLocal().updateEvent(selectedEvent); 
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Revert successful"));
+            }
         } catch (Exception e) {
             
             System.out.print("Selected Customer is not marked as present");
@@ -370,25 +381,45 @@ public class EventManagedBean implements Serializable {
     }
     
     public void markAsMissing(Long cId) {
+        FacesContext context = FacesContext.getCurrentInstance();
+        try {
+            
+            Customer customer = customerSessionLocal.getCustomer(cId);
+            if(selectedEvent.getCustomerMissed().contains(customer)) {
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Customer already marked as not present"));
+            }
+            
+            
+            if (selectedEvent.getCustomerAttended().contains(customer)) {
 
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error", "Customer is already marked as present , revert back first"));
+                return;
+            }
+            if (!selectedEvent.getCustomerMissed().contains(customer)) {
+                missedCustomers = eventSessionLocal.updateMissingCustomers(selectedEvent, customer);
+                this.getEventSessionLocal().updateEvent(selectedEvent);
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Customer is marked as missing"));     
+            }
+        } catch (NoResultException e) {
+
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Customer is not marked as missing"));
+        }
+    }
+    
+    public void revertMissing(Long cId) {
+        FacesContext context = FacesContext.getCurrentInstance();
         try {
 
             Customer customer = customerSessionLocal.getCustomer(cId);
-            if (!selectedEvent.getCustomerMissed().contains(customer)) {
-
-                missedCustomers = eventSessionLocal.updateMissingCustomers(selectedEvent, customer);
-                System.out.print("Selected Customer is marked as unpresent");      
+            if (selectedEvent.getCustomerMissed().contains(customer)) {
+                attendedCustomers = eventSessionLocal.removeMissingCustomers(selectedEvent, customer);
+                this.getEventSessionLocal().updateEvent(selectedEvent);
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Success", "Revert successful"));
             }
-        } catch (NoResultException e) {
+        } catch (Exception e) {
 
             System.out.print("Selected Customer is not marked as present");
 
         }
-    }
-
-    
-    
-    
-    
-   
+    }  
 }
