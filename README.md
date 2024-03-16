@@ -1,7 +1,31 @@
 # Event Management System
+Name : Foo Zhi Sheng
+Student : A0252699L
 
 The Event Management System (EMS) is a comprehensive software solution designed to streamline the planning, organization, and execution of events. 
 
 ## Tech Stack Used
 - Java
 - Jakarta EE
+
+## Database Details and Instructions for deploying project 
+
+### Database Configuration:
+- **Database Name:** eventDB
+- **Username:** administrator
+- **Password:** password
+
+### Instructions for Deploying the Project:
+
+1. **Clone the Repository:** Clone the project repository from GitHub.
+
+2. **Ensure GlassFish 5.1.0 is Installed:** Make sure that GlassFish 5.1.0 application server is installed and configured on your system.
+
+3. **Connect to eventDB:**
+   - Ensure that the `eventDB` database is set up and accessible.
+   - Configure the database connection settings in the project configuration files, such as `persistence.xml` or `glassfish-resources.xml`, to connect to the `eventDB` database. 
+   
+4. **Run the Event Management Module:**
+   - Deploy the Event Management Module to GlassFish 5.1.0:
+   
+
