@@ -55,3 +55,7 @@ The Event Management System (EMS) is a comprehensive software solution designed 
 ## Bonus Features
 - Enhanced Validation Constraints: Implement extensive validation constraints to ensure data integrity and prevent errors throughout the system. 
 - Password Masking: Enhance security by implementing password masking functionality to conceal user passwords while typing.
+
+##Image Preview 
+![My Photo](pictur1.png)
+
