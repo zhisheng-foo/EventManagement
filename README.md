@@ -58,5 +58,6 @@ The Event Management System (EMS) is a comprehensive software solution designed 
 
 ##Image Preview 
 
-![My Photo](https://drive.google.com/file/d/1yp26sXWPCY-NdDo1xFO4AnOGXYYu4eOK/view?usp=drive_link)
+![My Photo](https://drive.google.com/uc?export=download&id=1yp26sXWPCY-NdDo1xFO4AnOGXYYu4eOK)
+
 
