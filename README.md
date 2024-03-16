@@ -5,6 +5,8 @@ Student : A0252699L
 
 The Event Management System (EMS) is a comprehensive software solution designed to streamline the planning, organization, and execution of events. 
 
+![My Photo](https://drive.google.com/uc?export=download&id=1yp26sXWPCY-NdDo1xFO4AnOGXYYu4eOK)
+
 ## Tech Stack Used
 - Java
 - Jakarta EE
@@ -55,11 +57,6 @@ The Event Management System (EMS) is a comprehensive software solution designed 
 ## Bonus Features
 - Enhanced Validation Constraints: Implement extensive validation constraints to ensure data integrity and prevent errors throughout the system. 
 - Password Masking: Enhance security by implementing password masking functionality to conceal user passwords while typing.
-
-##Web Preview 
-
-![My Photo](https://drive.google.com/uc?export=download&id=1yp26sXWPCY-NdDo1xFO4AnOGXYYu4eOK)
-
 
 ## Video Demonstration
 
