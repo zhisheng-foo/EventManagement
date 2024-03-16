@@ -57,5 +57,6 @@ The Event Management System (EMS) is a comprehensive software solution designed 
 - Password Masking: Enhance security by implementing password masking functionality to conceal user passwords while typing.
 
 ##Image Preview 
-![My Photo](picture1.png)
+
+![My Photo](https://drive.google.com/file/d/1yp26sXWPCY-NdDo1xFO4AnOGXYYu4eOK/view?usp=drive_link)
 
